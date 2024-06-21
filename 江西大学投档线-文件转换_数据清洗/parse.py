@@ -1,21 +1,25 @@
 import os
 import shutil
 
-def copy_and_rename_excel_files(folder_path):
-    # 遍历文件夹中的所有Excel文件
-    for file in os.listdir(folder_path):
-        if file.endswith(".xlsx") or file.endswith(".xls"):
-            file_path = os.path.join(folder_path, file)
-            new_file_name = "新的_" + file
-            new_file_path = os.path.join(folder_path, new_file_name)
-            
-            # 复制文件并重命名
-            try:
-                shutil.copy(file_path, new_file_path)
-                print(f"已创建文件: {new_file_name}")
-            except Exception as e:
-                print(f"复制文件 {file} 时发生错误: {e}")
+def copy_and_overwrite_excel_files_in_subfolders(base_folder_path):
+    # 遍历当前文件夹下的所有子文件夹
+    for root, dirs, files in os.walk(base_folder_path):
+        for file in files:
+            if file.endswith(".xlsx") or file.endswith(".xls"):
+                file_path = os.path.join(root, file)
+                temp_file_path = os.path.join(root, "temp_" + file)
+                
+                # 复制文件到临时文件
+                try:
+                    shutil.copy(file_path, temp_file_path)
+                    print(f"已创建临时文件: {temp_file_path}")
+                    
+                    # 覆盖原文件
+                    shutil.move(temp_file_path, file_path)
+                    print(f"已覆盖原文件: {file_path}")
+                except Exception as e:
+                    print(f"复制文件 {file} 时发生错误: {e}")
 
 # 示例用法
-folder_path = './2023'
-copy_and_rename_excel_files(folder_path)
+base_folder_path = '.'
+copy_and_overwrite_excel_files_in_subfolders(base_folder_path)

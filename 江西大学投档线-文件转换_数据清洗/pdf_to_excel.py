@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 # 全局开始时间
 global_start_time = time.time()
 
+# 1. PDF 读取和数据提取
 def read_pdf_with_pdfplumber(pdf_path):
     data = []
     with pdfplumber.open(pdf_path) as pdf:
@@ -19,6 +20,7 @@ def read_pdf_with_pdfplumber(pdf_path):
                 data.extend(table)
     return data
 
+# 2. Excel 文件处理和调整
 def adjust_column_width_and_alignment(ws, column_name, width, alignment):
     column_letter = None
     for col in ws.iter_cols(1, ws.max_column):
@@ -102,6 +104,7 @@ def process_pdf_data(pdf_data, pdf_file, pending_folder, output_folder):
     elapsed_time = end_time - global_start_time
     print(f"文件 {pdf_file} 数据清洗消耗时间: {elapsed_time:.2f} 秒")
 
+# 3. PDF 转换为 Excel 处理流程
 def pdf_to_excel_and_process(pdf_folder, pending_folder, output_folder):
     # 创建输出文件夹
     if not os.path.exists(pending_folder):
@@ -120,6 +123,7 @@ def pdf_to_excel_and_process(pdf_folder, pending_folder, output_folder):
 
     print("PDF 文件转换和处理为 Excel 文件完成。")
 
+# 4. 加载江西数据
 def load_jiangxi_data(jiangxi_folder):
     jiangxi_data = {}
     for root, dirs, files in os.walk(jiangxi_folder):
@@ -133,6 +137,7 @@ def load_jiangxi_data(jiangxi_folder):
                         jiangxi_data[school_name] = row.to_dict()
     return jiangxi_data
 
+# 5. 追加学校数据到 Excel
 def append_school_data_to_excel(input_file, jiangxi_data):
     # 读取 Excel 文件
     df = pd.read_excel(input_file)
@@ -158,6 +163,7 @@ def append_school_data_to_excel(input_file, jiangxi_data):
 
     return df  # 返回匹配后的数据框
 
+# 6. 创建过滤后的副本
 def create_filtered_copy(input_file, output_folder):
     start_time = time.time()  # 记录开始时间
 
@@ -196,6 +202,7 @@ def create_filtered_copy(input_file, output_folder):
     elapsed_time = end_time - start_time
     print(f"文件 {input_file} 创建默认筛选副本并保存到 {output_file} 完成，消耗时间: {elapsed_time:.2f} 秒")
 
+# 7. 处理待处理的 Excel 文件
 def process_pending_excels(pending_folder, output_folder, jiangxi_data):
     # 处理 pending_excel_folder 中的所有文件
     pending_files = [f for f in os.listdir(pending_folder) if f.endswith(".xlsx")]
