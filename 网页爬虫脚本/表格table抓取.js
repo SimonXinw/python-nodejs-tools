@@ -1,14 +1,14 @@
 (function () {
 
     // 假设我们要抓取的第一个表格就是目标表格
-    var table = document.querySelector('.article table');
+    var rows = document.querySelectorAll('body table tbody tr');
 
     // 存储表格数据
     var data = [];
 
     // 遍历表格的行
-    for (var i = 1; i < table.rows.length; i++) { // 从1开始，跳过表头
-        var row = table.rows[i];
+    for (var i = 1; i < rows.length; i++) { // 从1开始，跳过表头
+        var row = rows[i];
         var rowData = [];
         // 遍历单元格
         for (var j = 0; j < row.cells.length; j++) {
