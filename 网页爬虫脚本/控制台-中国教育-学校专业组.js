@@ -1,4 +1,32 @@
 (async function () {
+    function waitForElementUpdate(targetElement, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            let timer;
+            let observer;
+
+            const timeoutHandler = () => {
+                observer.disconnect();
+                reject(new Error('Error：等待更新超时！'));
+            };
+
+            const observerHandler = (mutationsList) => {
+                for (const mutation of mutationsList) {
+                    if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                        console.log('元素已更新或加载完成');
+                        clearTimeout(timer);
+                        observer.disconnect();
+                        resolve(false);
+                        return;
+                    }
+                }
+            };
+
+            timer = setTimeout(timeoutHandler, timeout);
+
+            observer = new MutationObserver(observerHandler);
+            observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
+        });
+    }
 
     const schoolName = document.querySelector('school-tab_name__3pOZK');
 
@@ -7,10 +35,11 @@
 
     // 2.找到子元素 <div class="ant-select-selection-selected-value" title="全部专业组" style="display: block; opacity: 1;">全部专业组</div> 进行点击
     const allGroupsElement = zsPlanElement.querySelector('div.ant-select-selection-selected-value[title="全部专业组"]');
+
     allGroupsElement.click();
 
     // 3. 等待
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+    await new Promise(resolve => setTimeout(resolve, 800)); // 等待1秒
 
     // 4.找到 id="zs_plan" 父元素下面的这个全部专业组元素
     const zsPlanElement1 = document.getElementById('zs_plan');
@@ -45,7 +74,12 @@
         optionElement.click();
 
         // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 等待2秒，确保表格加载完成
+        try {
+            // 等待表格重新加载完成
+            await waitForElementUpdate(targetElement, 2000);
+        } catch (error) {
+            console.error(error.message);
+        }
 
         const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
 
