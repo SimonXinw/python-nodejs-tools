@@ -15,7 +15,6 @@
             const observerHandler = (mutationsList) => {
                 for (const mutation of mutationsList) {
                     if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                        console.log('元素已更新或加载完成');
                         clearTimeout(timer);
                         observer.disconnect();
                         resolve(false);
@@ -71,6 +70,31 @@
 
         return result;
     }
+
+    function extractData(tableElement, groupName) {
+
+        if (!tableElement) return [];
+
+        const data = [];
+
+        const rows = Array.from(tableElement.querySelectorAll('tr'));
+
+        for (const row of rows) {
+            const columns = Array.from(row.querySelectorAll('td'));
+
+            data.push([
+                columns[0]?.innerText,
+                columns[1]?.innerText,
+                columns[2]?.innerText,
+                columns[3]?.innerText,
+                columns[4]?.innerText,
+                groupName
+            ]);
+        }
+
+        return data
+    }
+
 
     function waitTime(time = 1000) {
         return new Promise(resolve => {
@@ -167,21 +191,24 @@
         }
     });
 
-    console.log('选择框元素 >>>>>', allGroupsOptionElement)
+    // console.log('选择框元素 >>>>>', allGroupsOptionElement)
 
     const selectParentDom = allGroupsOptionElement.parentElement;
 
     // 5.遍历 selectParentDom 元素下面的所有 <li> 子元素
     const optionElements = Array.from(selectParentDom.querySelectorAll('li.ant-select-dropdown-menu-item'));
 
-    console.log('选择框子元素 >>>>>', optionElements)
+    // console.log('选择框子元素 >>>>>', optionElements)
 
     // 6.避开 selectParentDom 元素下面的第一个全部专业组元素，开始依次点击从第二个开始的所有元素，注意记录下点击顺序
-    const data = [];
+    let data = [];
 
-    for (let i = 1; i < optionElements.length; i++) {
-        const optionElement = optionElements[i];
+    // 过滤第一个全部专业组选项，不点击
+    const majorsOptionEles = Array.from(optionElements).slice(1);
 
+    for (const optionElement of majorsOptionEles) {
+
+        // console.log('专业选择 dom>>>>>>>>', optionElement)
 
         // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
         const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
@@ -191,31 +218,54 @@
             await waitForElementUpdate(tableElement, () => {
                 // 先监听，在点击
                 optionElement.click();
-            }, 2000);
+            }, 1800);
         } catch (error) {
             console.error(error.message);
         }
 
-        if (tableElement) {
-            const rows = Array.from(tableElement.querySelectorAll('tr'));
+        // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
+        const paginationItemEles = document.querySelectorAll('#zs_plan .pagination_box ul li');
 
-            for (const row of rows) {
-                const columns = Array.from(row.querySelectorAll('td'));
+        console.log('分页父级 dom>>>>>>>>', paginationItemEles)
 
-                data.push([
-                    columns[0]?.innerText,
-                    columns[1]?.innerText,
-                    columns[2]?.innerText,
-                    columns[3]?.innerText,
-                    columns[4]?.innerText,
-                    optionElements[i].innerText // 记录点击的专业组名称
-                ]);
+        const paginationItemElesArr = Array.from(paginationItemEles)
+
+
+        if (paginationItemElesArr?.length > 0) {
+            const pageSize = Number(paginationItemElesArr[paginationItemElesArr.length - 2].querySelector('a').innerText)
+
+            const nextBtnEle = paginationItemElesArr[paginationItemElesArr.length - 1].querySelector('span')
+
+            console.log('分页数 dom>>>>>>>>', pageSize, '按钮', nextBtnEle)
+
+            for (let i = 0; i < pageSize; i++) {
+                // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
+                const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
+
+                data = data.concat(extractData(tableElement, optionElement.innerText));
+
+                console.log('第 ' + i + ' 页  抓取的数据>>>>>>>>', data)
+
+                try {
+                    // 等待表格重新加载完成
+                    await waitForElementUpdate(tableElement, () => {
+                        // 先监听，在点击
+                        nextBtnEle.click();
+                    }, 1600);
+                } catch (error) {
+                    console.error('分页失败', error.message);
+                }
+
             }
+
+            continue;
+
+        } else {
+            // 直接抓取
+            data = data.concat(extractData(tableElement, optionElement.innerText));
         }
+
     }
-
-
-
 
     const oldData = [
         ['专业名称', '计划招生', '学制', '学费', '选科要求', '专业组'], // 表头
@@ -231,6 +281,7 @@
 
     // 2. 引入SheetJS库
     const script = document.createElement('script');
+
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js';
 
     script.onload = () => {
