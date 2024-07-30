@@ -1,5 +1,8 @@
 (async function () {
-    function waitForElementUpdate(targetElement, timeout = 5000) {
+    /**
+     * @爬取的网页 https://www.gaokao.cn/school/108/provinceline
+    */
+    function waitForElementUpdate(targetEle, afterListenFn, timeout = 5000,) {
         return new Promise((resolve, reject) => {
             let timer;
             let observer;
@@ -24,14 +27,120 @@
             timer = setTimeout(timeoutHandler, timeout);
 
             observer = new MutationObserver(observerHandler);
-            observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
+
+            observer.observe(targetEle, { attributes: true, childList: true, subtree: true });
+
+            afterListenFn?.()
         });
     }
 
-    const schoolName = document.querySelector('school-tab_name__3pOZK');
+
+    function transformData(data, schoolName) {
+        const header = data[0];
+
+        const result = [["院校名称", "专业组", "选科", "包含专业"]];
+
+        const groupMap = {};
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+
+            const group = row[header.indexOf("专业组")];
+            const major = row[header.indexOf("专业名称")] + '-' + row[header.indexOf("计划招生")];;
+            const subject = row[header.indexOf("选科要求")];
+
+            if (!groupMap[group]) {
+                groupMap[group] = {
+                    group: group,
+                    subject: subject,
+                    majors: []
+                };
+            }
+
+            groupMap[group].majors.push(major);
+        }
+
+        for (let key in groupMap) {
+            result.push([
+                schoolName,
+                groupMap[key].group,
+                groupMap[key].subject,
+                groupMap[key].majors.join(", ")
+            ]);
+        }
+
+        return result;
+    }
+
+    function waitTime(time = 1000) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, time);
+        });
+    }
+
+    const schoolName = document.querySelector('.school-tab_name__3pOZK')?.innerText;
+
+    const containerEle = document.querySelector('.layoutWrap.clearfix')
+
+    const scoreTabEle = document.querySelectorAll('.school-tab_tabNavs__1wdWg .school-tab_item__3J3Fh')[1]
+
+    try {
+        // 等待 - 省份加载完成
+        await waitForElementUpdate(containerEle, () => {
+            // 先监听，在点击
+            scoreTabEle.click();
+        }, 2000);
+    } catch (error) {
+        console.error('Error: 点击分数计划监听变化失败', error.message);
+    }
+
+    await waitTime(1000);
 
     // 1.找到 id="zs_plan" 父元素
     const zsPlanElement = document.getElementById('zs_plan');
+
+    const selectsParentEle = zsPlanElement.querySelector('.slt-drop.flex-fsx')
+
+    const proviceSelectEle = selectsParentEle.querySelectorAll('.ant-select.ant-select-enabled')?.[0];
+
+
+    try {
+        // 等待 - 省份加载完成
+        await waitForElementUpdate(selectsParentEle, () => {
+            // 先监听，在点击
+            proviceSelectEle.click();
+        }, 1000);
+    } catch (error) {
+        console.error('Error: 点击父元素失败', error.message);
+    }
+
+    console.log('选择框 bar, 等待省份是否全部加载', selectsParentEle)
+
+    const proviceOptionWrapEles = selectsParentEle.children[5];
+
+    const proviceOptionEles = proviceOptionWrapEles.querySelectorAll('ul li')
+
+    Array.from(proviceOptionEles).forEach(async proviceOptionEle => {
+
+        if (proviceOptionEle.innerText === '江西') {
+
+            try {
+                // 等待 - 全部专业组加载完成
+                await waitForElementUpdate(selectsParentEle, () => {
+                    // 先监听，在点击
+                    proviceOptionEle.click();
+                }, 1000);
+            } catch (error) {
+                console.error('Error: 点击父元素失败', error.message);
+            }
+
+        }
+
+    });
+
+
 
     // 2.找到子元素 <div class="ant-select-selection-selected-value" title="全部专业组" style="display: block; opacity: 1;">全部专业组</div> 进行点击
     const allGroupsElement = zsPlanElement.querySelector('div.ant-select-selection-selected-value[title="全部专业组"]');
@@ -69,25 +178,30 @@
 
     // 6.避开 selectParentDom 元素下面的第一个全部专业组元素，开始依次点击从第二个开始的所有元素，注意记录下点击顺序
     const data = [];
+
     for (let i = 1; i < optionElements.length; i++) {
         const optionElement = optionElements[i];
-        optionElement.click();
+
 
         // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
+        const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
+
         try {
             // 等待表格重新加载完成
-            await waitForElementUpdate(targetElement, 2000);
+            await waitForElementUpdate(tableElement, () => {
+                // 先监听，在点击
+                optionElement.click();
+            }, 2000);
         } catch (error) {
             console.error(error.message);
         }
 
-        const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
-
         if (tableElement) {
             const rows = Array.from(tableElement.querySelectorAll('tr'));
 
-            rows.forEach(row => {
+            for (const row of rows) {
                 const columns = Array.from(row.querySelectorAll('td'));
+
                 data.push([
                     columns[0]?.innerText,
                     columns[1]?.innerText,
@@ -96,44 +210,10 @@
                     columns[4]?.innerText,
                     optionElements[i].innerText // 记录点击的专业组名称
                 ]);
-            });
-        }
-    }
-
-    function transformData(data) {
-        const header = data[0];
-        const result = [["院校名称", "专业组", "选科", "包含专业"]];
-
-        const groupMap = {};
-
-        for (let i = 1; i < data.length; i++) {
-            const row = data[i];
-            const group = row[header.indexOf("专业组")];
-            const major = row[header.indexOf("专业名称")];
-            const subject = row[header.indexOf("选科要求")];
-
-            if (!groupMap[group]) {
-                groupMap[group] = {
-                    group: group,
-                    subject: subject,
-                    majors: []
-                };
             }
-
-            groupMap[group].majors.push(major);
         }
-
-        for (let key in groupMap) {
-            result.push([
-                schoolName,
-                groupMap[key].group,
-                groupMap[key].subject,
-                groupMap[key].majors.join(", ")
-            ]);
-        }
-
-        return result;
     }
+
 
 
 
@@ -143,8 +223,11 @@
     ]
 
     console.log('抓取的原始数据 >>>>>', oldData)
+    console.log('学校名字 >>>>>', schoolName)
 
-    const formatData = transformData(oldData);
+    const formatData = transformData(oldData, schoolName);
+
+    console.log('格式化后的数据 >>>>>', formatData)
 
     // 2. 引入SheetJS库
     const script = document.createElement('script');
