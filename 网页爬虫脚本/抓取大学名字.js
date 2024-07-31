@@ -1,78 +1,77 @@
-(function () {
-    // 引入SheetJS库的函数
-    function loadSheetJS(callback) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js';
-        script.onload = callback;
-        document.head.appendChild(script);
-    }
+(async function() {
+    const urls = Array.from({ length: 5000 }, (_, i) => `https://www.gaokao.cn/school/${i + 1}/provinceline`);
+    const results = [['院校名称', '院校代码']];
+    const failedResults = [['URL', '错误信息']];
 
-    // 检查页面加载完成并且提取院校名称的函数
-    function checkAndSaveData(url) {
+    // 等待元素更新的函数，使用 MutationObserver
+    function waitForElementUpdate(selector, timeout = 5000) {
         return new Promise((resolve, reject) => {
-            // 假设这里使用了某种方式来加载页面，例如: fetch 或者直接在新标签页打开
-            // 这里使用setTimeout模拟页面加载过程
-            setTimeout(() => {
-                // 检查url是否改变，这里需要根据实际页面加载后的URL进行判断
-                if (window.location.href !== url) {
-                    console.error('URL错误');
-                    reject('URL错误');
-                    return;
-                }
-
-                // 检查院校名称是否存在
-                const schoolName = document.querySelector('.school-tab_name__3pOZK')?.innerText;
-                if (schoolName) {
-                    const院校代码 = 1; // 假设院校代码是1，这里需要根据实际情况赋值
-                    const dataRow = [schoolName, 院校代码];
-                    resolve(dataRow);
-                } else {
-                    console.error('院校名称不存在');
-                    reject('院校名称不存在');
-                }
-            }, 3000); // 假设页面加载需要3秒
-        });
-    }
-
-    // 主循环函数
-    async function mainLoop() {
-        const baseUrls = [
-            'https://www.gaokao.cn/school/1/provinceline',
-            'https://www.gaokao.cn/school/2/provinceline',
-            // 更多URL...
-        ];
-
-        const formatData = [];
-
-        for (let i = 0; i < 5000; i++) { // 执行5000次循环
-            const url = baseUrls[i % baseUrls.length]; // 循环使用baseUrls数组中的URLs
-
-            console.log(`正在处理第 ${i + 1} 次循环，URL: ${url}`);
-
-            // 这里需要使用某种方式打开URL，例如: window.open 或者其他方式
-            // 然后切换到新标签页并等待页面加载
-            const dataRow = await checkAndSaveData(url).catch(error => {
-                console.error(error);
-                // 如果页面加载失败或URL错误，存储错误信息并继续循环
-                const errorRow = ['错误信息', ''];
-                formatData.push(errorRow);
-                continue;
-            });
-
-            if (dataRow) {
-                formatData.push(dataRow);
+            const targetElement = document.querySelector(selector);
+            if (!targetElement) {
+                reject(new Error('目标元素未找到！'));
+                return;
             }
-        }
 
-        // 所有页面处理完毕后，转换数据为Excel文件
-        loadSheetJS(() => {
-            const ws = XLSX.utils.aoa_to_sheet(formatData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-            XLSX.writeFile(wb, '院校招生专业组专业明细.xlsx');
+            let timer;
+            let observer;
+            let debounceTimer;
+
+            const timeoutHandler = () => {
+                observer.disconnect();
+                reject(new Error('等待更新超时！'));
+            };
+
+            const observerHandler = (mutationsList) => {
+                if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                }
+                debounceTimer = setTimeout(() => {
+                    observer.disconnect();
+                    resolve(true);
+                }, 300);  // 防抖时间设为300ms
+            };
+
+            timer = setTimeout(timeoutHandler, timeout);
+            observer = new MutationObserver(observerHandler);
+            observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
         });
     }
 
-    // 执行主循环
-    mainLoop();
-})()
+    for (const url of urls) {
+        try {
+            // 导航到新页面
+            window.location.href = url;
+
+            // 等待页面加载完成
+            await waitForElementUpdate('.school-tab_name__3pOZK', 10000);
+
+            // 检查页面元素
+            const schoolName = document.querySelector('.school-tab_name__3pOZK')?.innerText;
+            const schoolCode = url.match(/school\/(\d+)\//)[1];
+
+            if (schoolName) {
+                results.push([schoolName, schoolCode]);
+            } else {
+                failedResults.push([url, '院校名称未找到']);
+            }
+        } catch (error) {
+            failedResults.push([url, error.message]);
+        }
+    }
+
+    const formatData = results.concat(failedResults);
+
+    // 2. 引入SheetJS库
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js';
+    script.onload = () => {
+        // 3. 数据转化为Excel文件
+        const ws = XLSX.utils.aoa_to_sheet(formatData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+        // 4. 下载Excel文件
+        XLSX.writeFile(wb, '院校信息.xlsx');
+    };
+    document.head.appendChild(script);
+})();
