@@ -7,3 +7,7 @@ python 的 工具使用
 
 python parse.py
  解密上传
+
+ fdfs
+
+ 
