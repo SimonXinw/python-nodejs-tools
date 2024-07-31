@@ -273,7 +273,6 @@
     ]
 
     console.log('抓取的原始数据 >>>>>', oldData)
-    console.log('学校名字 >>>>>', schoolName)
 
     const formatData = transformData(oldData, schoolName);
 
