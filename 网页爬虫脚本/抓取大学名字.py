@@ -42,9 +42,9 @@ class UniversityScraper:
         options.add_argument("--log-level=3")
         service = Service(self.driver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
-        self.wait = WebDriverWait(self.driver, 2)
+        self.wait = WebDriverWait(self.driver, 4)
 
-    def _wait_for_element_update(self, selector, timeout=2):
+    def _wait_for_element_update(self, selector, timeout=4):
         try:
             element_present = EC.presence_of_element_located((By.CSS_SELECTOR, selector))
             WebDriverWait(self.driver, timeout).until(element_present)
@@ -58,7 +58,7 @@ class UniversityScraper:
             time.sleep(random.uniform(0.5, 1.5))
             self.driver.get(url)
 
-            WebDriverWait(self.driver, 2).until(
+            WebDriverWait(self.driver, 4).until(
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
 
@@ -69,7 +69,7 @@ class UniversityScraper:
                 print(f"页面跳转失败：{url} -> {current_url}")
                 return
 
-            if not self._wait_for_element_update(".school-tab_name__3pOZK", 2):
+            if not self._wait_for_element_update(".school-tab_name__3pOZK", 4):
                 self.results.append(["", url.split("/")[4], "失败", "未找到学校元素，等待超时"])
                 self._save_results()
                 print("未找到学校元素，等待超时")
@@ -124,9 +124,9 @@ class UniversityScraper:
 
 
 if __name__ == "__main__":
-    chrome_driver_path = "D:\\Program Files (x86)\\chromedriver-win64\\chromedriver.exe"
-    num_urls = 5000
-    save_excel_path = "D:\\projects\\xw\\python\\python-tools\\网页爬虫脚本\\高考教育院校id_map_表.xlsx"
+    chrome_driver_path = "C:\\Program Files\\chromedriver-win64\\chromedriver.exe"
+    num_urls = 10000
+    save_excel_path = "C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\网页爬虫脚本\\高考教育院校id_map_表.xlsx"
 
     scraper = UniversityScraper(chrome_driver_path, num_urls, save_excel_path)
     scraper.scrape()
