@@ -1,5 +1,4 @@
 import os
-import shutil
 from datetime import datetime
 
 def copy_and_overwrite_files_in_subfolders(base_folder_path):
@@ -17,7 +16,7 @@ def copy_and_overwrite_files_in_subfolders(base_folder_path):
                     # 写回文件以覆盖原文件
                     with open(file_path, 'wb') as f:
                         f.write(file_content)
-
+                                                 
                     # 更新文件的修改时间
                     current_time = datetime.now().timestamp()
                     os.utime(file_path, (current_time, current_time))

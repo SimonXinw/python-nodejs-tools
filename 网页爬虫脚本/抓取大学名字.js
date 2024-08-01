@@ -19,8 +19,7 @@
             const timeoutHandler = () => {
                 observer.disconnect();
                 reject(new Error('等待更新超时！'));
-            };
-
+            };                                                                                  
             const observerHandler = (mutationsList) => {
                 if (debounceTimer) {
                     clearTimeout(debounceTimer);
