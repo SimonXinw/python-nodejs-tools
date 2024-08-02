@@ -2,8 +2,12 @@ import pandas as pd
 import time
 
 # 文件路径
-file1_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\院校招生专业组专业明细.xlsx'
-file2_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
+# file1_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\院校招生专业组专业明细.xlsx'
+# file2_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
+
+file1_path = r'D:\projects\xw\python\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\院校招生专业组专业明细.xlsx'
+file2_path = r'D:\projects\xw\python\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
+
 
 # 读取表1和表2
 start_time = time.time()
