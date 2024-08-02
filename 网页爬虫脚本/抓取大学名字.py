@@ -9,26 +9,44 @@ import pandas as pd
 import os
 import time
 import random
+import csv
 
 
 class UniversityScraper:
-    def __init__(self, driver_path, num_urls, save_excel_path):
+    def __init__(self, driver_path, num_urls, save_csv_path, save_excel_path):
         self.driver_path = driver_path
         self.num_urls = num_urls
         self.driver = None
-        self.results = [["院校名称", "院校代码", "状态", "错误信息"]]
+        self.results = []
+        self.save_csv_path = save_csv_path
         self.save_excel_path = save_excel_path
         self.start_index = 0
+        self.csvfile = None
+        self.writer = None
         self._load_existing_results()
 
     def _load_existing_results(self):
-        if os.path.exists(self.save_excel_path):
-            df = pd.read_excel(self.save_excel_path, header=None)
-            self.start_index = len(df) - 1
-            self.results = df.values.tolist()
-            print(f"已存在的结果加载成功，继续从第 {self.start_index + 1} 条记录开始")
+        if not os.path.exists(self.save_csv_path):
+            if os.path.exists(self.save_excel_path):
+                df = pd.read_excel(self.save_excel_path, header=None)
+                df.to_csv(self.save_csv_path, index=False, header=False, encoding='utf-8-sig')
+                self.results = df.values.tolist()
+                self.start_index = len(df) - 1
+                print(f"Excel 文件已转化为 CSV 文件，继续从第 {self.start_index + 1} 条记录开始")
+            else:
+                print("未找到已存在的结果文件，从头开始")
         else:
-            print("未找到已存在的结果文件，从头开始")
+            with open(self.save_csv_path, newline='', encoding='utf-8-sig') as csvfile:
+                reader = csv.reader(csvfile)
+                self.results = list(reader)
+                self.start_index = len(self.results) - 1
+                print(f"已存在的结果加载成功，继续从第 {self.start_index + 1} 条记录开始")
+
+        # Open CSV file once at initialization
+        self.csvfile = open(self.save_csv_path, 'a', newline='', encoding='utf-8-sig')
+        self.writer = csv.writer(self.csvfile)
+        if self.start_index == 0:
+            self.writer.writerow(["院校名称", "院校代码", "状态", "错误信息"])  # Write header if starting fresh
 
     def _init_driver(self):
         options = webdriver.ChromeOptions()
@@ -40,9 +58,10 @@ class UniversityScraper:
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
         options.add_argument("--log-level=3")
+        
         service = Service(self.driver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
-        self.wait = WebDriverWait(self.driver, 4)
+        self.wait = lambda selector, timeout: WebDriverWait(self.driver, timeout).until(selector)
 
     def _wait_for_element_update(self, selector, timeout=4):
         try:
@@ -55,14 +74,10 @@ class UniversityScraper:
 
     def _process_url(self, url):
         try:
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(random.uniform(0.5, 1))
             self.driver.get(url)
-
-            WebDriverWait(self.driver, 4).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-
             current_url = self.driver.current_url.split("?")[0]
+            
             if current_url != url:
                 self.results.append(["", url.split("/")[4], "失败", "页面跳转失败"])
                 self._save_results()
@@ -81,12 +96,11 @@ class UniversityScraper:
 
             if school_name:
                 self.results.append([school_name, school_code, "成功", ""])
-                self._save_results()
-                time.sleep(random.uniform(0.5, 1.5))
             else:
                 self.results.append(["", school_code, "失败", "院校名称未找到"])
-                self._save_results()
-            print(f"寻找结果：学校名称：{school_name}")
+
+            self._save_results()
+            print(f"爬取结果：学校名称：{school_name}")
 
         except TimeoutException as e:
             self.results.append(["", url.split("/")[4], "失败", "加载超时"])
@@ -107,26 +121,24 @@ class UniversityScraper:
 
         for index in range(self.start_index, self.num_urls):
             url = urls[index]
-            print(f"当前访问页面： {index + 1}/{self.num_urls}: {url}")
+            print(f"当前访问页，时间{datetime.now().strftime('%Y年%m月%d日 %H时%M分%S秒')}： {index + 1}/{self.num_urls}: {url}")
             self._process_url(url)
 
         self.driver.quit()
+        self.csvfile.close()
 
     def _save_results(self):
-        df = pd.DataFrame(self.results)
-        with pd.ExcelWriter(
-            self.save_excel_path,
-            engine="openpyxl",
-            mode="a" if os.path.exists(self.save_excel_path) else "w",
-            if_sheet_exists="overlay",
-        ) as writer:
-            df.to_excel(writer, index=False, header=False)
+        # Append new results to the CSV file
+        self.writer.writerows(self.results)
+        # Clear results to avoid duplicate entries in next save
+        self.results = []
 
 
 if __name__ == "__main__":
-    chrome_driver_path = "C:\\Program Files\\chromedriver-win64\\chromedriver.exe"
-    num_urls = 10000
-    save_excel_path = "C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\网页爬虫脚本\\高考教育院校id_map_表.xlsx"
+    chrome_driver_path = "D:\\Program Files (x86)\\chromedriver-win64\\chromedriver.exe"
+    num_urls = 20000
+    save_csv_path = "D:\\projects\\xw\\python\\python-tools\\网页爬虫脚本\\高考教育院校id_map_表.csv"
+    save_excel_path = "D:\\projects\\xw\\python\\python-tools\\网页爬虫脚本\\高考教育院校id_map_表.xlsx"
 
-    scraper = UniversityScraper(chrome_driver_path, num_urls, save_excel_path)
+    scraper = UniversityScraper(chrome_driver_path, num_urls, save_csv_path, save_excel_path)
     scraper.scrape()
