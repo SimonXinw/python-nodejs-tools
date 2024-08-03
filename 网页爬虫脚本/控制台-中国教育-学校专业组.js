@@ -1,7 +1,7 @@
 (async function () {
-    /**
-     * @爬取的网页 https://www.gaokao.cn/school/108/provinceline
-    */
+/**
+ * @爬取的网页 https://www.gaokao.cn/school/108/provinceline
+*/
     function waitForElementUpdate(targetEle, afterListenFn, timeout = 2000, { debounceTime = 200 } = {}) {
         return new Promise((resolve, reject) => {
             if (!targetEle) {
@@ -321,19 +321,33 @@
 
     console.log('格式化后的数据 >>>>>', formatData)
 
+    window.schoolMajorsExcelData = formatData;
+
+    // 将新的 div 元素添加到 body 标签的末尾
+    const schoolMajorsExcelDataStatusDiv = document.createElement('div');
+
+    schoolMajorsExcelDataStatusDiv.textContent = '加载完成';
+
+    schoolMajorsExcelDataStatusDiv.id = 'schoolMajorsExcelDataStatus';
+
+    document.body.appendChild(schoolMajorsExcelDataStatusDiv);
+
+    return formatData
+
     // 2. 引入SheetJS库
-    const script = document.createElement('script');
+    // const script = document.createElement('script');
 
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js';
+    // script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js';
 
-    script.onload = () => {
-        // 3. 数据转化为Excel文件
-        const ws = XLSX.utils.aoa_to_sheet(formatData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    // script.onload = () => {
+    //     // 3. 数据转化为Excel文件
+    //     const ws = XLSX.utils.aoa_to_sheet(formatData);
+    //     const wb = XLSX.utils.book_new();
+    //     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
 
-        // 4. 下载Excel文件
-        XLSX.writeFile(wb, '院校招生专业组专业明细.xlsx');
-    };
-    document.head.appendChild(script);
-})();
+    //     // 4. 下载Excel文件
+    //     XLSX.writeFile(wb, '院校招生专业组专业明细.xlsx');
+    // };
+    // document.head.appendChild(script);
+}
+)()

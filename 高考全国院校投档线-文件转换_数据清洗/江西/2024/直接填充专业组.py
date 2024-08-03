@@ -1,41 +1,43 @@
 import pandas as pd
-import time
+import re
+from time import time
 
 # 文件路径
-# file1_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\院校招生专业组专业明细.xlsx'
-# file2_path = r'C:\Users\simon\Desktop\python-projects\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
+file1_path = 'C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\高考全国院校投档线-文件转换_数据清洗\\江西\\2024\\院校招生专业组专业明细.xlsx'
+file2_path = 'C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\高考全国院校投档线-文件转换_数据清洗\\江西\\2024\\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
 
-file1_path = r'D:\projects\xw\python\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\院校招生专业组专业明细.xlsx'
-file2_path = r'D:\projects\xw\python\python-tools\高考全国院校投档线-文件转换_数据清洗\江西\2024\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx'
+# 计时开始
+start_time = time()
 
-
-# 读取表1和表2
-start_time = time.time()
-
+# 读取文件
 df1 = pd.read_excel(file1_path)
 df2 = pd.read_excel(file2_path)
 
-# 处理数据匹配并更新表2
-for index1, row1 in df1.iterrows():
-    majorCode =  str(row1['专业组']).split('（')[1].split('）')[0] 
+# 清洗数据，确保列名和数据一致
+df1 = df1[['院校名称', '专业组', '选科', '包含专业']]
+df2 = df2.rename(columns={'专业组名称': '专业组', '专业': '包含专业'})
 
-    for index2, row2 in df2.iterrows():
+# 清洗df2中的专业组，移除“第”和“组”以及括号中的内容
+df2['专业组'] = df2['专业组'].apply(lambda x: re.sub(r'第|组|\(.*?\)', '', x).strip())
 
-        major2Code = row2['专业组名称']
+# 创建唯一键
+df1['key'] = df1['院校名称'] + '-' + df1['专业组'].astype(str)
+df2['key'] = df2['院校名称'] + '-' + df2['专业组'].astype(str)
 
-        is_same_major_code = majorCode in major2Code
+# 合并数据
+df2 = df2.merge(df1[['key', '选科', '包含专业']], on='key', how='left', suffixes=('', '_new'))
 
-        if row1['院校名称'] == row2['院校名称'] and is_same_major_code :
-            df2.at[index2, '专业'] = row1['包含专业']
+# 用表1的值填充表2的对应列
+df2['选科'] = df2['选科_new'].combine_first(df2['选科'])
+df2['包含专业'] = df2['包含专业_new'].combine_first(df2['包含专业'])
 
-# 计算处理时间
-end_time = time.time()
-processing_time = end_time - start_time
-print(f"处理完成，总共用时 {processing_time:.2f} 秒。")
+# 删除临时列
+df2.drop(columns=['选科_new', '包含专业_new', 'key'], inplace=True)
 
-# 生成更新后的文件
-file2_name = file2_path.split('\\')[-1]  # 获取原文件名
-updated_file_path = file2_path.replace(file2_name, f"{file2_name}")
+# 保存更新后的文件
+df2.to_excel(file2_path, index=False)
 
-df2.to_excel(updated_file_path, index=False)
-print(f"更新后的文件已保存为: {updated_file_path}")
+# 计时结束
+end_time = time()
+print(f"处理时间: {end_time - start_time:.2f} 秒")
+    
