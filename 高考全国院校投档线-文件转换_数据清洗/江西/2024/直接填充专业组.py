@@ -30,6 +30,9 @@ df2["院校名称"] = df2["院校名称"].apply(replace_brackets)
 
 # 清洗df2中的专业组，移除“第”和“组”以及括号中的内容
 df1["专业组"] = df1["专业组"].apply(lambda x: re.sub(r"\D", "", x).strip())
+
+# 处理 NaN 值
+df2["专业组名称"] = df2["专业组名称"].astype(str)
 df2["专业组代码"] = df2["专业组名称"].apply(lambda x: re.sub(r"\D", "", x).strip())
 
 # 创建唯一键
