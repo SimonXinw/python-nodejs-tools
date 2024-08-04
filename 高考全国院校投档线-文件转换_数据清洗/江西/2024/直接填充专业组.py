@@ -28,7 +28,7 @@ def replace_brackets(text):
 df1["院校名称"] = df1["院校名称"].apply(replace_brackets)
 df2["院校名称"] = df2["院校名称"].apply(replace_brackets)
 
-# 清洗df2中的专业组，移除“第”和“组”以及括号中的内容
+# 清洗df1中的专业组，移除“第”和“组”以及括号中的内容
 df1["专业组"] = df1["专业组"].apply(lambda x: re.sub(r"\D", "", x).strip())
 
 # 处理 NaN 值
@@ -52,12 +52,12 @@ df2["包含专业"] = df2["包含专业_new"].combine_first(df2["包含专业"])
 # 删除临时列
 df2.drop(columns=["选科_new", "包含专业_new", "key", "专业组代码"], inplace=True)
 
-# 对位次列升序排序（处理可能的数据类型问题）
+# 对最低投档排名列升序排序（处理可能的数据类型问题）
 try:
-    df2["位次"] = pd.to_numeric(df2["位次"], errors="coerce")
-    df2.sort_values(by="位次", inplace=True)
+    df2["最低投档排名"] = pd.to_numeric(df2["最低投档排名"], errors="coerce")
+    df2.sort_values(by="最低投档排名", inplace=True)
 except ValueError as e:
-    print(f"Error sorting by '位次' column: {e}")
+    print(f"Error sorting by '最低投档排名' column: {e}")
 
 
 #  不要删除，不要识别，只是备注 保存 DataFrame 为 Excel 文件
