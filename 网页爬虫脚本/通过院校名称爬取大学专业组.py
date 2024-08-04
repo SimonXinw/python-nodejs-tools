@@ -167,7 +167,7 @@ class MajorsScraper:
             # 执行 JavaScript 函数
             self.driver.execute_script(self.js_code)
 
-            self._wait_for_element_update("#schoolMajorsExcelDataStatus", 36)
+            self._wait_for_element_update("#schoolMajorsExcelDataStatus", 64)
 
             # 获取返回值（这里假设函数会将结果存储在一个全局变量中）
             window_school_majors_data = self.driver.execute_script(

@@ -18,11 +18,9 @@ df2 = pd.read_excel(enrollment_statistics_path)
 # 清洗数据，确保列名和数据一致
 df1 = df1[["院校名称", "专业组", "选科", "包含专业"]]
 
-
 def replace_brackets(text):
     # 使用正则表达式替换中文括号为英文括号
     return text.replace("（", "(").replace("）", ")")
-
 
 # 将df1 中院校名称 的中文括号转换成英文
 df1["院校名称"] = df1["院校名称"].apply(replace_brackets)
@@ -39,14 +37,28 @@ df2["专业组代码"] = df2["专业组名称"].apply(lambda x: re.sub(r"\D", ""
 df1["key"] = df1["院校名称"] + "-" + df1["专业组"].astype(str)
 df2["key"] = df2["院校名称"] + "-" + df2["专业组代码"].astype(str)
 
+# 检查 df1 中 key 的唯一性并去重
+if df1["key"].duplicated().any():
+    print("Warning: df1 有重复key.")
+    df1 = df1.drop_duplicates(subset="key")
+
+# 打印原始 df2 行数
+original_df2_row_count = len(df2)
+print(f"Original df2 row count: {original_df2_row_count}")
+
 # 合并数据
-df2 = df2.merge(
-    df1[["key", "选科", "包含专业"]], on="key", how="left", suffixes=("", "_new")
-)
+df2 = df2.merge(df1[["key", "选科", "包含专业"]], on="key", how="left", suffixes=("", "_new"))
+
+# 打印合并后的 df2 行数
+merged_df2_row_count = len(df2)
+print(f"Merged df2 row count: {merged_df2_row_count}")
+
+# 确保行数没有变化
+if merged_df2_row_count != original_df2_row_count:
+    raise ValueError("Row count has changed after merging. Check the merge keys and data.")
 
 # 用表1的值填充表2的对应列
 df2["选科"] = df2["选科_new"].combine_first(df2["选科"])
-
 df2["包含专业"] = df2["包含专业_new"].combine_first(df2["包含专业"])
 
 # 删除临时列
@@ -58,22 +70,6 @@ try:
     df2.sort_values(by="最低投档排名", inplace=True)
 except ValueError as e:
     print(f"Error sorting by '最低投档排名' column: {e}")
-
-
-#  不要删除，不要识别，只是备注 保存 DataFrame 为 Excel 文件
-# df2.to_excel(enrollment_statistics_path, index=False)
-
-# # 使用 openpyxl 读取刚保存的 Excel 文件
-# wb = load_workbook(enrollment_statistics_path)
-# ws = wb.active
-
-# # 设置边框样式（这里定义 thin_border）
-# thin_border = Border(
-#     left=Side(style="thin"),
-#     right=Side(style="thin"),
-#     top=Side(style="thin"),
-#     bottom=Side(style="thin"),
-# )
 
 # 以下是对 Excel 文件进行格式设置的代码
 wb = Workbook()
@@ -90,7 +86,6 @@ for r in range(2, len(df2) + 2):
     for c in range(1, len(df2.columns) + 1):
         cell_value = df2.iloc[r - 2, c - 1]
         ws.cell(row=r, column=c).value = cell_value
-
 
 # 获取包含专业列的列索引
 col_index = df2.columns.get_loc("包含专业") + 1
