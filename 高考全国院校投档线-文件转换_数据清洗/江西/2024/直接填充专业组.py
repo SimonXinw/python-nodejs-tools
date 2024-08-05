@@ -1,12 +1,21 @@
 import pandas as pd
-import re
 from time import time
-from openpyxl.styles import Alignment, Border, Side, PatternFill
+from openpyxl.styles import Alignment
 from openpyxl import Workbook
 
+import os
+import re
+
+
+# 获取当前脚本所在目录的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 # 文件路径（更具描述性的命名）
-professional_details_path = "C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\高考全国院校投档线-文件转换_数据清洗\\江西\\2024\\院校招生专业组专业明细.xlsx"
-enrollment_statistics_path = "C:\\Users\\simon\\Desktop\\python-projects\\python-tools\\高考全国院校投档线-文件转换_数据清洗\\江西\\2024\\江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx"
+professional_details_path = os.path.join(current_dir, "院校招生专业组专业明细.xlsx")
+enrollment_statistics_path = os.path.join(
+    current_dir,
+    "江西省2024年普通高校招生本科投档情况统计表(历史类、物理类、三校生类).xlsx",
+)
 
 # 计时开始
 start_time = time()
@@ -18,20 +27,29 @@ df2 = pd.read_excel(enrollment_statistics_path)
 # 清洗数据，确保列名和数据一致
 df1 = df1[["院校名称", "专业组", "选科", "包含专业"]]
 
+
 def replace_brackets(text):
-    # 使用正则表达式替换中文括号为英文括号
+    if isinstance(text, float):
+        # 可以根据具体情况进行处理，比如将其转换为字符串或其他合适的操作
+        text = str(text)
     return text.replace("（", "(").replace("）", ")")
+
 
 # 将df1 中院校名称 的中文括号转换成英文
 df1["院校名称"] = df1["院校名称"].apply(replace_brackets)
 df2["院校名称"] = df2["院校名称"].apply(replace_brackets)
 
+
 # 清洗df1中的专业组，移除“第”和“组”以及括号中的内容
-df1["专业组"] = df1["专业组"].apply(lambda x: re.sub(r"\D", "", x).strip())
+df1["专业组"] = df1["专业组"].apply(
+    lambda x: re.sub(r"\D", "", str(x)).strip() if not isinstance(x, float) else str(x)
+)
 
 # 处理 NaN 值
 df2["专业组名称"] = df2["专业组名称"].astype(str)
-df2["专业组代码"] = df2["专业组名称"].apply(lambda x: re.sub(r"\D", "", x).strip())
+df2["专业组代码"] = df2["专业组名称"].apply(
+    lambda x: re.sub(r"\D", "", str(x)).strip() if not isinstance(x, float) else str(x)
+)
 
 # 创建唯一键
 df1["key"] = df1["院校名称"] + "-" + df1["专业组"].astype(str)
@@ -47,7 +65,9 @@ original_df2_row_count = len(df2)
 print(f"Original df2 row count: {original_df2_row_count}")
 
 # 合并数据
-df2 = df2.merge(df1[["key", "选科", "包含专业"]], on="key", how="left", suffixes=("", "_new"))
+df2 = df2.merge(
+    df1[["key", "选科", "包含专业"]], on="key", how="left", suffixes=("", "_new")
+)
 
 # 打印合并后的 df2 行数
 merged_df2_row_count = len(df2)
@@ -55,7 +75,9 @@ print(f"Merged df2 row count: {merged_df2_row_count}")
 
 # 确保行数没有变化
 if merged_df2_row_count != original_df2_row_count:
-    raise ValueError("Row count has changed after merging. Check the merge keys and data.")
+    raise ValueError(
+        "Row count has changed after merging. Check the merge keys and data."
+    )
 
 # 用表1的值填充表2的对应列
 df2["选科"] = df2["选科_new"].combine_first(df2["选科"])

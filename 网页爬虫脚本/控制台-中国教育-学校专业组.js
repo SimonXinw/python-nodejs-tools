@@ -1,7 +1,7 @@
 (async function () {
-/**
- * @爬取的网页 https://www.gaokao.cn/school/108/provinceline
-*/
+    /**
+     * @爬取的网页 https://www.gaokao.cn/school/108/provinceline
+    */
     function waitForElementUpdate(targetEle, afterListenFn, timeout = 2000, { debounceTime = 200 } = {}) {
         return new Promise((resolve, reject) => {
             if (!targetEle) {
@@ -149,9 +149,9 @@
         // 过滤第一个全部专业组选项，不点击
         const majorsOptionEles = Array.from(optionElements).slice(1);
 
-        for (const optionElement of majorsOptionEles) {
+        for (const majorOptionElement of majorsOptionEles) {
 
-            // console.log('专业选择 dom>>>>>>>>', optionElement)
+            // console.log('专业选择 dom>>>>>>>>', majorOptionElement)
 
             // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
             const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
@@ -160,14 +160,14 @@
                 // 等待表格重新加载完成
                 await waitForElementUpdate(tableElement, () => {
                     // 先监听，在点击
-                    optionElement.click();
+                    majorOptionElement.click();
                 }, 2000);
             } catch (error) {
                 console.error(error.message);
             }
 
-            // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
-            const paginationItemEles = document.querySelectorAll('#zs_plan .pagination_box ul li');
+            // 7.每一次分页点击之后等待表格重新加载完成，抓取里面的数据
+            const paginationItemEles = document.querySelectorAll('#zs_plan .pagination_box ul li') || [];
 
             console.log('分页父级 dom>>>>>>>>', paginationItemEles)
 
@@ -185,7 +185,7 @@
                     // 7.每一次点击之后等待表格重新加载完成，抓取里面的数据
                     const tableElement = document.querySelector('#zs_plan .province_score_line_table table tbody');
 
-                    data = data.concat(extractData(tableElement, optionElement.innerText));
+                    data = data.concat(extractData(tableElement, majorOptionElement.innerText));
 
                     console.log('第 ' + i + ' 页  抓取的数据>>>>>>>>', data)
 
@@ -205,7 +205,7 @@
 
             } else {
                 // 直接抓取
-                data = data.concat(extractData(tableElement, optionElement.innerText));
+                data = data.concat(extractData(tableElement, majorOptionElement.innerText));
             }
 
         }

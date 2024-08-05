@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
 import os
-import time 
+import time
 from datetime import datetime
 import random
 from urllib.parse import quote
@@ -122,11 +122,15 @@ class MajorsScraper:
             # 访问的页面被重定向到别的地方，直接中断
             if not encoded_url in current_url:
                 print(f"页面跳转失败，页面被重定向了：{self.url} -> {current_url}")
-
+                
+                self.df.at[self.row_index, "状态"] = "失败"
+                
                 return
 
             # 等待 - 有没有表格详细的行内的单元格
-            school_name_selector = ".head-search_schoolSearchItem__vOFho .head-search_schoolName__2ozme span"
+            school_name_selector = (
+                ".head-search_schoolSearchItem__vOFho .head-search_schoolName__2ozme em"
+            )
 
             if not self._wait_for_element_update(school_name_selector, 8):
                 self.df.at[self.row_index, "状态"] = "失败"
@@ -134,33 +138,42 @@ class MajorsScraper:
                 print("加载失败，找不到院校名称元素，等待超时或其他错误")
 
                 return
+            
+            # 不要点击那么快
+            time.sleep(random.uniform(0.1, 0.3))
 
             # 找到所有目标类的元素
-            school_items = self.driver.find_elements(
+            school_item = self.driver.find_element(
                 By.CSS_SELECTOR, ".head-search_schoolSearchItem__vOFho"
             )
 
-            # 筛选出目标学校名称的元素并点击
-            for item in school_items:
-                school_name_element = item.find_element(
-                    By.CSS_SELECTOR, ".head-search_schoolName__2ozme span"
+            school_name_element = school_item.find_element(
+                By.CSS_SELECTOR, ".head-search_schoolName__2ozme em span"
+            )
+
+            # 选出目标学校名称的元素并点击
+            if school_name_element.text == self.school_name:
+                school_name_element.click()
+                
+            else:
+                print(
+                    f"无法点击到 {school_name_element}，请检查 {self.school_name} 是否正确"
                 )
-
-                if school_name_element.text == self.school_name:
-                    item.click()
-
-                    break
+                
+                self.df.at[self.row_index, "状态"] = "失败"
+                
+                return
 
             # 切换页面，新打开的标签页
             self.driver.switch_to.window(self.driver.window_handles[-1])
 
             shcool_tabbar_selector = ".school-tab_tabNavs__1wdWg img"
 
-            # 等待元素加载 - 学校点击分数栏
+            # 等待页面加载出来
             if not self._wait_for_element_update(shcool_tabbar_selector, 6):
                 self.df.at[self.row_index, "状态"] = "失败"
 
-                print("未找到学校点击分数栏格，等待超时或其他错误")
+                print("页面加载失败，等待超时或其他错误")
 
                 return
 
@@ -178,8 +191,6 @@ class MajorsScraper:
 
             self._save_majors_result()
 
-            self.close_others_tag_pages()
-
             self.df.at[self.row_index, "状态"] = "成功"
 
         except TimeoutException as e:
@@ -194,7 +205,11 @@ class MajorsScraper:
         finally:
             self.save_school_name_excel()
 
-            print(f"爬取完成，当前时间 => {datetime.now().strftime('%Y年%m月%d日 %H时%M分%S秒')}")
+            self.close_others_tag_pages()
+
+            print(
+                f"爬取完成，当前时间 => {datetime.now().strftime('%Y年%m月%d日 %H时%M分%S秒')}"
+            )
 
     def save_school_name_excel(self):
         # 保存更新后的Excel文件
@@ -213,7 +228,7 @@ class MajorsScraper:
     def run(self):
         # 计时开始
         self.start_time = time.time()
-        
+
         # 运行整个爬虫流程
         self._init_driver()
 
@@ -239,10 +254,12 @@ class MajorsScraper:
 
         self.save_school_name_excel()
 
-       # 计时结束
+        # 计时结束
         end_time = time.time()
-        
-        print(f"脚本全部执行完成 >>>>>>>>> 处理总用时: {end_time - self.start_time:.2f} 秒")
+
+        print(
+            f"脚本全部执行完成 >>>>>>>>> 处理总用时: {end_time - self.start_time:.2f} 秒"
+        )
 
         self.driver.quit()
 
@@ -255,9 +272,9 @@ if __name__ == "__main__":
 
     school_name_excel_path = os.path.join(current_dir, "还需要爬取的院校.xlsx")
 
-    # chrome_driver_path = r"D:\Program Files (x86)\chromedriver-win64\chromedriver.exe"
+    chrome_driver_path = r"D:\Program Files (x86)\chromedriver-win64\chromedriver.exe"
 
-    chrome_driver_path = r"C:\Program Files\chromedriver-win64\chromedriver.exe"
+    # chrome_driver_path = r"C:\Program Files\chromedriver-win64\chromedriver.exe"
 
     js_script_path = os.path.join(current_dir, "控制台-中国教育-学校专业组.js")
 
