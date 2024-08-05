@@ -133,7 +133,7 @@ for col_idx, col in enumerate(ws.columns, start=1):
 # 开启筛选（对所有列）
 ws.auto_filter.ref = ws.dimensions
 
-# 只是为了备注不需要处理，也不要删除，要保留这个注释 - 手动设置突出单元格规则  =AND(LEN(F1)<100,ISNUMBER(SEARCH("临床医学",F1)))
+# 只是为了备注不需要处理，也不要删除，要保留这个注释 - 手动设置突出单元格规则  =AND(LEN(E1)<60,ISNUMBER(SEARCH("临床医学",E1)))
 
 # 保存格式设置后的 Excel 文件
 wb.save(enrollment_statistics_path)
