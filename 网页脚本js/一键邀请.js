@@ -24,6 +24,6 @@
         setTimeout(() => { 
             btn.click(); 
             previousTimestamp = performance.now(); // 更新为当前时间戳
-        }, 64 * i);
+        }, 100 * i);
     }
 })();
